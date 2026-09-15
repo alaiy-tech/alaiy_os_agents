@@ -1,0 +1,53 @@
+{
+ "type": "object",
+ "additionalProperties": true,
+ "properties": {
+  "item_code": {
+   "type": "string",
+   "minLength": 1,
+   "description": "The product this comparison is for, exactly as get_product returned it."
+  },
+  "competitor_prices": {
+   "type": "array",
+   "description": "Every competitor price you actually verified by opening its page with view_competitor_page. Never include one you could not point to an opened URL for.",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "source_name": {
+      "type": "string",
+      "description": "The retailer's name, e.g. 'Amazon' or 'Walmart' — not the raw domain."
+     },
+     "url": {
+      "type": "string",
+      "description": "The exact page URL you opened with view_competitor_page and read the price from."
+     },
+     "price": {
+      "type": "number",
+      "description": "The price as shown on that page."
+     },
+     "currency": {
+      "type": "string",
+      "description": "The currency that price is in, e.g. 'USD'."
+     }
+    },
+    "required": ["source_name", "url", "price", "currency"]
+   }
+  },
+  "needs_review": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "description": "Anything an admin should double check — e.g. a competitor listing that may be a different variant or bundle."
+  },
+  "notes": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "description": "Anything the admin should know: why few or no competitor prices were found, ambiguities about whether a listing is really the same product, or that web search was unavailable."
+  }
+ },
+ "required": ["item_code", "competitor_prices", "needs_review"]
+}
