@@ -76,6 +76,9 @@ BASE_PROMPT = read_text("prompts/system.md")
 BASE_SCHEMA = json.loads(read_text("schemas/output.json"))
 
 _HANDLERS = f"{_PKG}.tools"
+# The two web-research tools are the only ones that do not dispatch through a
+# channel adapter, so they keep their own module — see websearch.py.
+_WEBSEARCH = f"{_PKG}.websearch"
 
 # What the user types after the slash in Ask Alaiy, and the arguments behind it.
 SKILL_SLUG = "listing"
@@ -220,6 +223,57 @@ TOOL_CATALOG = {
 				"channel": _CHANNEL_ARG,
 			},
 			"required": ["product"],
+		},
+	},
+	"search_competitor_listings": {
+		"description": (
+			"Search the public web for the same product on other retailers, and "
+			"return a grounded answer with its sources. Only call this if your "
+			"instructions below include a competitor web-lookup step — it says "
+			"when this tool applies and how to treat what it returns. `query` "
+			"should be phrased for a search engine: brand + model or reference "
+			"number + product type, not a copy of the input. Returns {answer, "
+			"citations: [{title, url}]} — the answer comes from a model reading "
+			"the live web; treat it as a source, not as fact. One citation is one "
+			"shop's word for it: read more than one of them with "
+			"`view_competitor_page` before trusting a specific value, per your "
+			"instructions below."
+		),
+		"handler": f"{_WEBSEARCH}.search_competitor_listings",
+		"parameters_schema": {
+			"type": "object",
+			"properties": {
+				"query": {
+					"type": "string",
+					"description": (
+						"The search query, phrased for a search engine — brand, "
+						"model/reference number, and product type."
+					),
+				},
+			},
+			"required": ["query"],
+		},
+	},
+	"view_competitor_page": {
+		"description": (
+			"Fetch a competitor page URL (typically one of "
+			"`search_competitor_listings`'s citations) and return its text, so "
+			"you can read the actual spec rather than trusting a search summary. "
+			"Returns the page's extracted text, truncated to a fixed budget. A "
+			"page you actually open this way is also the ONLY thing that can "
+			"source a value to the web — a URL you cite without opening it earns "
+			"nothing and may be reported as an unsourced claim."
+		),
+		"handler": f"{_WEBSEARCH}.view_page",
+		"parameters_schema": {
+			"type": "object",
+			"properties": {
+				"url": {
+					"type": "string",
+					"description": "The competitor page URL to fetch and read.",
+				},
+			},
+			"required": ["url"],
 		},
 	},
 	"view_image": {
