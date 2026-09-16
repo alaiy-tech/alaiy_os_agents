@@ -1,0 +1,99 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:item_code",
+ "creation": "2026-09-15 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "item_code",
+  "run",
+  "compared_at",
+  "prices_section",
+  "solist_price",
+  "currency",
+  "competitor_section",
+  "competitor_prices"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "description": "This comparison's own run — open it for the full transcript.",
+   "fieldname": "run",
+   "fieldtype": "Link",
+   "label": "Run",
+   "options": "OS Agent Run",
+   "read_only": 1
+  },
+  {
+   "fieldname": "compared_at",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Compared At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "prices_section",
+   "fieldtype": "Section Break",
+   "label": "Prices"
+  },
+  {
+   "fieldname": "solist_price",
+   "fieldtype": "Currency",
+   "label": "Solist Price",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Data",
+   "label": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "competitor_section",
+   "fieldtype": "Section Break",
+   "label": "Competitor Prices"
+  },
+  {
+   "fieldname": "competitor_prices",
+   "fieldtype": "Table",
+   "label": "Competitor Prices",
+   "options": "Price Comparison Competitor Price"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Alaiy Os Agents",
+ "name": "Price Comparison Result",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}
