@@ -31,7 +31,7 @@ import json
 import frappe
 from frappe.utils import now_datetime
 
-from alaiy_os_agents.agents.listing import channels
+from alaiy_os_agents.agents.listing import channels, context
 
 BATCH_DOCTYPE = "Listing Bulk Enrich"
 ITEM_DOCTYPE = "Listing Bulk Enrich Item"
@@ -109,7 +109,8 @@ def _run_row(batch, row, agent, channel, options, skip_enriched):
 		return
 
 	try:
-		run = _create_run(agent, {"product": product, "channel": channel, **options})
+		payload = context.augment_payload({"product": product, "channel": channel, **options})
+		run = _create_run(agent, payload)
 		# Committed before the run starts: run_queued rolls back on failure, which
 		# would otherwise discard this row's own state along with the run's.
 		_set_row(row, {"status": "Running", "run": run, "error": None})
