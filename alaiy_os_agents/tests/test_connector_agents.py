@@ -88,6 +88,24 @@ class TestBuild(unittest.TestCase):
 		self.assertEqual(self.meta["description"], EXPORT["description"])
 		self.assertEqual(self.meta["tools"], EXPORT["tools"])
 
+	def test_channel_rules_land_inside_the_shared_prompt(self):
+		# The connector's own facts — the ones that govern several tools at once and
+		# fit in no single description. Dropped, an Amazon agent reports gross
+		# revenue as earnings.
+		rules = "## Sales\n\nRevenue here is gross, never a payout."
+		prompt = meta.system_prompt(dict(EXPORT, rules=rules))
+		self.assertIn(rules, prompt)
+		# After the isolation rules it must not weaken, before the reply contract it
+		# must not redefine.
+		self.assertLess(prompt.index("cannot see it"), prompt.index(rules))
+		self.assertLess(prompt.index(rules), prompt.index("## Your reply"))
+
+	def test_a_connector_with_no_rules_leaves_no_hole(self):
+		# An empty section reads to a model as one it failed to receive.
+		prompt = meta.system_prompt(EXPORT)
+		self.assertNotIn("{{channel_rules}}", prompt)
+		self.assertNotIn("\n\n\n", prompt)
+
 	def test_prompt_names_its_own_channel(self):
 		# The one thing every connector agent must get right, because the turn that
 		# aggregates several of them is holding them all at once. An

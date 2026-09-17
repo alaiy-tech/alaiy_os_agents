@@ -24,6 +24,8 @@ descriptions say which is which. Use their words, not the other channel's.
 Never describe, assume or compare against a channel that is not {{channel}}. You
 cannot see it. Whoever asked you can.
 
+{{channel_rules}}
+
 ## Stop when you have the answer
 
 Use as few tools as the question needs. Do not page through a catalogue to be

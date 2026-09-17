@@ -33,6 +33,24 @@ that serves no listing channel does not register `listing_channels`. The
 dependency points one way: this app looks for connectors, connectors do not look
 for this app.
 
+## What a connector may still say, and where
+
+The prompt is this app's. What goes *inside* it at `{{channel_rules}}` is the
+connector's: the facts about that channel which no single tool description can
+hold because they govern several tools at once.
+
+Amazon is the worked example. "Revenue here is gross merchandise value, never a
+payout" is true of seven tools; "when Amazon's live figure disagrees with the
+synced one, say so and by how much" is a rule about two tools *together*, and the
+reason they disagree — different day boundaries, different marketplace coverage —
+belongs to neither of them alone. Pushed into tool descriptions those rules get
+copied five times and drift; dropped, an agent reports gross revenue as earnings.
+
+It is a fragment, not a prompt. The connector does not decide the structure, the
+reply contract, the model or the turn budget, and cannot remove what this file
+says — it adds its own facts at one fixed point. A connector with nothing to add
+leaves it out and the template closes over the gap.
+
 ## One channel per agent, and never two in one context
 
 Each agent gets exactly the tools of the connector it was built for, so nothing
@@ -182,7 +200,7 @@ def build(export):
 		"icon": export.get("icon") or DEFAULT_ICON,
 		"model": MODEL,
 		"max_turns": MAX_TURNS,
-		"system_prompt": BASE_PROMPT.replace("{{channel}}", label),
+		"system_prompt": system_prompt(export),
 		"output_format": "JSON",
 		"output_schema": OUTPUT_SCHEMA,
 		"input_schema": input_schema(export),
@@ -206,6 +224,25 @@ def build(export):
 		"tools": export["tools"],
 		"writes": export.get("writes") or (),
 	}
+
+
+def system_prompt(export):
+	"""The shared prompt, named for this channel, with the connector's rules in it.
+
+	Two substitutions and nothing else. `{{channel}}` is the label, everywhere it
+	appears; `{{channel_rules}}` is the connector's own fragment, at the one point
+	the template puts it — after the isolation rules, which it must not be able to
+	weaken, and before the reply contract, which it must not be able to redefine.
+
+	A connector with no rules gets the surrounding blank lines collapsed rather
+	than a hole in the middle of the prompt, because a stray empty section reads to
+	a model as a section it failed to receive.
+	"""
+	rules = (export.get("rules") or "").strip()
+	prompt = BASE_PROMPT.replace("{{channel}}", export["label"])
+	if rules:
+		return prompt.replace("{{channel_rules}}", rules)
+	return prompt.replace("\n\n{{channel_rules}}\n", "").replace("{{channel_rules}}", "")
 
 
 def input_schema(export):
