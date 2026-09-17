@@ -26,6 +26,27 @@ required_apps = ["alaiy_os"]
 # Each agent lands **disabled**. The code ships with the app; whether a site runs
 # any given agent is a decision made in the Agents settings screen, and it is
 # `is_enabled` that Ask Alaiy reads — see registry.py.
+#
+# The exception is a connector agent, which lands enabled: it exists only because
+# a connector was installed and configured, and asking a site to choose the same
+# connector twice is not a safety property. `agents/connector/meta.py` asks for
+# that, and registry.py's `enabled_on_insert` is how.
+#
+# ---------------------------------------------------------------------------
+# Seams this app reads
+# ---------------------------------------------------------------------------
+# `listing_channels`   — what a marketplace needs from a listing, for the ONE
+#                        listing agent. See agents/listing/channels.py.
+# `connector_agents`   — a connector's questions and the tools that answer them.
+#                        One agent is built per entry, here rather than there:
+#                        the connector owns what can be asked, this app owns the
+#                        model, the prompt, the turn budget and the reply shape.
+#                        See agents/connector/meta.py.
+#
+# Neither is declared here. Both point the same way — this app looks for
+# connectors, connectors do not look for this app — so a bench with no connector
+# at all installs and runs exactly as it does today, with no agent registered
+# from either seam and nothing to configure.
 after_install = ["alaiy_os_agents.registry.sync"]
 after_migrate = ["alaiy_os_agents.registry.sync"]
 
