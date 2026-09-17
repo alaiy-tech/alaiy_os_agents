@@ -21,6 +21,12 @@ That is the whole contract. `sync()` imports each subpackage of `agents/`, calls
 that function, and upserts what comes back. A directory without it is skipped
 rather than treated as broken, so a shared helpers package can live there too.
 
+A package may expose `build_agent_metas` instead — plural, returning a list — when
+how many agents it describes is not known until it runs on a site. `agents/connector`
+is the one that does: it builds one agent per installed connector, so a bench with
+three connectors gets three rows out of that single package and a bare bench gets
+none. Everything downstream is identical; only the count varies.
+
 Deliberately not a hook. A hook is for apps that do not know about each other,
 and these all ship together in this one — a registration list would be a second
 place to edit and a second thing to forget. The directory IS the list.
@@ -30,11 +36,10 @@ place to edit and a second thing to forget. The directory IS the list.
 **Every agent here is registered with `is_enabled = 0` on first insert.** The
 code is on every bench that has this app, but nothing runs until someone turns it
 on in the Agents settings screen, and `is_enabled` is what the rest of Alaiy OS
-already reads: `chat/skills.py` filters the `/` catalogue on it, `chat/agents.py`
-runs only what that catalogue offers, and `chat/tools.py` skips a disabled row's
-tools. So enabling an agent is what makes Ask Alaiy able to use it, and disabling
-it is a complete off switch — no separate wiring, and nothing here to keep in
-step with the chat.
+already reads: `chat/skills.py` filters the `/` catalogue on it and `chat/agents.py`
+runs only what that catalogue offers. So enabling an agent is what makes Ask Alaiy
+able to use it, and disabling it is a complete off switch — no separate wiring, and
+nothing here to keep in step with the chat.
 
 Off by default because these are not free. An agent is a model, its tools, and
 whatever they touch — spend, and in some cases writes — and a bench should not
@@ -57,7 +62,19 @@ import frappe
 _RUNTIME_FIELDS = {"is_enabled"}
 
 #: Manifest keys the desk surfaces read, which are not registry fields.
-_NON_REGISTRY_FIELDS = {"agent_id", "tools", "input_options", "override_app"}
+#:
+#: `writes` and `enabled_on_insert` are read here rather than surfaced: the first
+#: by `_tool_row`, the second by `_upsert`. Both are listed so `doc.set` is never
+#: called with them — a manifest key with no field behind it sets a stray attribute
+#: on the Document, which saves without complaint and is then invisible.
+_NON_REGISTRY_FIELDS = {
+	"agent_id",
+	"tools",
+	"input_options",
+	"override_app",
+	"writes",
+	"enabled_on_insert",
+}
 
 #: Dict-valued manifest keys that land on Code fields. Without the dump they are
 #: stored as a Python repr, which `json.loads` then refuses — silently, and only
@@ -81,13 +98,24 @@ def agents():
 			continue
 		meta_module = f"{package.__name__}.{module.name}.meta"
 		try:
-			build = importlib.import_module(meta_module).build_agent_meta
-		except (ModuleNotFoundError, AttributeError):
+			meta_py = importlib.import_module(meta_module)
+		except ModuleNotFoundError:
 			# Not an agent — a shared helpers package, say. Skipping is right, and
 			# quiet: this is the documented way to have one.
 			continue
-		meta = build()
-		found[meta["agent_id"]] = meta
+		# Plural first: a package describing a variable number of agents exposes
+		# only `build_agent_metas`, and one describing exactly one exposes only
+		# `build_agent_meta`. See the module docstring.
+		build_many = getattr(meta_py, "build_agent_metas", None)
+		build_one = getattr(meta_py, "build_agent_meta", None)
+		if build_many:
+			metas = build_many()
+		elif build_one:
+			metas = [build_one()]
+		else:
+			continue
+		for meta in metas:
+			found[meta["agent_id"]] = meta
 	return found
 
 
@@ -115,7 +143,12 @@ def _upsert(meta):
 		# The one moment `is_enabled` is ours. The DocType's own default is 1,
 		# which is right for a connector's pack — installed because someone chose
 		# that connector — and wrong for an agent that arrived with an app upgrade.
-		doc.is_enabled = 0
+		#
+		# A manifest says which it is. `agents/connector` builds exactly the first
+		# case and asks for it: those agents exist only because a connector was
+		# installed and configured, so starting them off would mean a bench that
+		# chose a connector then has to choose it again.
+		doc.is_enabled = 1 if meta.get("enabled_on_insert") else 0
 
 	for key, value in meta.items():
 		if key in _NON_REGISTRY_FIELDS or key in _RUNTIME_FIELDS:
@@ -142,10 +175,27 @@ def _tool_row(meta, tool):
 			else tool.get("parameters_schema")
 		),
 		"connector": tool.get("connector"),
-		# Marking the writers keeps them off Ask Alaiy's directly-callable tool
-		# surface, so anything that changes state is only ever reached inside a run
-		# that applied the agent's own rules — see chat/tools.py:_pack_tools.
+		# Marks which tools change state. Nothing reads this any more: it existed to
+		# keep writers off Ask Alaiy's directly-callable tool surface, and that
+		# surface is gone — every tool is now reached only inside a run that applied
+		# its agent's own rules, which is the property `effect` was approximating.
+		#
+		# Still written, because it is the honest record of what a tool does and the
+		# thing any future gate would read. A manifest that stopped declaring it
+		# would have to rediscover it.
 		"effect": "write" if tool["tool_id"] in set(meta.get("writes") or ()) else "read",
+		# What the tool must be able to read for its handler to return real data.
+		# Carried through rather than dropped because two gates gate on it and both
+		# read it off the row: `engine/factory.py` refuses a run whose user is
+		# missing any of it, and `api/agent_settings.py` refuses the switch. A tool
+		# that declared its requirements in a manifest and arrived here without them
+		# is an undeclared tool — silently ungated, and reported to the operator as
+		# though nobody had described it.
+		"required_permissions": (
+			json.dumps(tool["required_permissions"], indent=1)
+			if isinstance(tool.get("required_permissions"), (list, dict))
+			else tool.get("required_permissions")
+		),
 	}
 
 

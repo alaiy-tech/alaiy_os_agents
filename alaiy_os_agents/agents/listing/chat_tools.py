@@ -132,11 +132,15 @@ def source():
 
 	Two gates, and the first is easy to get wrong. A `chat_tool_sources` contribution
 	is NOT gated on the agent being enabled — `chat/tools.py:_surface` takes tenant
-	tools straight through `_provided`, and only `_pack_tools` (the `OS Agent Tool`
-	rows) are filtered on `is_enabled`. So without this check a site with the listing
-	agent switched off would still be offered a bulk enrich, which `bulk._create_run`
-	would then refuse once per row. Disabling an agent is meant to be a complete off
-	switch (see registry.py), and this is what keeps it one here.
+	tools straight through `_provided`, and nothing downstream checks `is_enabled` for
+	them. So without this check a site with the listing agent switched off would still
+	be offered a bulk enrich, which `bulk._create_run` would then refuse once per row.
+	Disabling an agent is meant to be a complete off switch (see registry.py), and this
+	is what keeps it one here.
+
+	This used to say that only `_pack_tools` filtered on `is_enabled`. That surface no
+	longer exists, which makes this check the *only* thing standing between a disabled
+	listing agent and a working bulk-enrich tool rather than the odd one out.
 
 	The second is the user's own permission to start runs. `api.bulk_enrich` checks
 	it again — this is the polite half, that one is the load-bearing half.
