@@ -36,11 +36,10 @@ place to edit and a second thing to forget. The directory IS the list.
 **Every agent here is registered with `is_enabled = 0` on first insert.** The
 code is on every bench that has this app, but nothing runs until someone turns it
 on in the Agents settings screen, and `is_enabled` is what the rest of Alaiy OS
-already reads: `chat/skills.py` filters the `/` catalogue on it, `chat/agents.py`
-runs only what that catalogue offers, and `chat/tools.py` skips a disabled row's
-tools. So enabling an agent is what makes Ask Alaiy able to use it, and disabling
-it is a complete off switch — no separate wiring, and nothing here to keep in
-step with the chat.
+already reads: `chat/skills.py` filters the `/` catalogue on it and `chat/agents.py`
+runs only what that catalogue offers. So enabling an agent is what makes Ask Alaiy
+able to use it, and disabling it is a complete off switch — no separate wiring, and
+nothing here to keep in step with the chat.
 
 Off by default because these are not free. An agent is a model, its tools, and
 whatever they touch — spend, and in some cases writes — and a bench should not
@@ -176,9 +175,14 @@ def _tool_row(meta, tool):
 			else tool.get("parameters_schema")
 		),
 		"connector": tool.get("connector"),
-		# Marking the writers keeps them off Ask Alaiy's directly-callable tool
-		# surface, so anything that changes state is only ever reached inside a run
-		# that applied the agent's own rules — see chat/tools.py:_pack_tools.
+		# Marks which tools change state. Nothing reads this any more: it existed to
+		# keep writers off Ask Alaiy's directly-callable tool surface, and that
+		# surface is gone — every tool is now reached only inside a run that applied
+		# its agent's own rules, which is the property `effect` was approximating.
+		#
+		# Still written, because it is the honest record of what a tool does and the
+		# thing any future gate would read. A manifest that stopped declaring it
+		# would have to rediscover it.
 		"effect": "write" if tool["tool_id"] in set(meta.get("writes") or ()) else "read",
 		# What the tool must be able to read for its handler to return real data.
 		# Carried through rather than dropped because two gates gate on it and both
