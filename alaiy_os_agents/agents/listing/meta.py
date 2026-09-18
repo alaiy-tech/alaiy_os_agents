@@ -232,12 +232,17 @@ TOOL_CATALOG = {
 			"instructions below include a competitor web-lookup step — it says "
 			"when this tool applies and how to treat what it returns. `query` "
 			"should be phrased for a search engine: brand + model or reference "
-			"number + product type, not a copy of the input. Returns {answer, "
-			"citations: [{title, url}]} — the answer comes from a model reading "
-			"the live web; treat it as a source, not as fact. One citation is one "
-			"shop's word for it: read more than one of them with "
-			"`view_competitor_page` before trusting a specific value, per your "
-			"instructions below."
+			"number + product type, not a copy of the input. If your instructions "
+			"below call for more than one genuinely different question (e.g. a "
+			"catalog-spec query and a separate wrist-fit query), ask them together "
+			"in ONE call via `queries` instead of calling this tool once per "
+			"question — each still gets its own answer, and it costs one turn "
+			"instead of several. Returns {answer, citations: [{title, url}]} for a "
+			"single `query`, or {results: [{query, answer, citations}, ...]} for "
+			"`queries` — the answer comes from a model reading the live web; treat "
+			"it as a source, not as fact. One citation is one shop's word for it: "
+			"read more than one of them with `view_competitor_page` before trusting "
+			"a specific value, per your instructions below."
 		),
 		"handler": f"{_WEBSEARCH}.search_competitor_listings",
 		"parameters_schema": {
@@ -247,11 +252,21 @@ TOOL_CATALOG = {
 					"type": "string",
 					"description": (
 						"The search query, phrased for a search engine — brand, "
-						"model/reference number, and product type."
+						"model/reference number, and product type. Omit if passing "
+						"`queries` instead."
+					),
+				},
+				"queries": {
+					"type": "array",
+					"items": {"type": "string"},
+					"description": (
+						"Two to five different search queries to ask in this one call "
+						"instead of `query`, when your instructions call for more than "
+						"one genuinely different question. Each is phrased the same way "
+						"`query` is and answered independently."
 					),
 				},
 			},
-			"required": ["query"],
 		},
 	},
 	"view_competitor_page": {

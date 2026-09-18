@@ -286,6 +286,13 @@ def save_listing(product, listing, channel=None):
 	"""
 	adapter = channels.resolve(product, channel)
 
+	# Mechanical, non-content fixes the channel knows how to make on the
+	# model's behalf -- see the adapter's own `normalize` for what qualifies
+	# and why. A channel with none just hands `listing` back unchanged.
+	normalize = channels.handler(adapter, "normalize")
+	if normalize is not None:
+		listing = normalize(listing=listing)
+
 	validate = channels.handler(adapter, "validate")
 	if validate is not None:
 		defects = validate(listing=listing) or []
