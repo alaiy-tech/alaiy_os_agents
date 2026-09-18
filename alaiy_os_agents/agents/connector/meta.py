@@ -204,7 +204,7 @@ def build(export):
 		"output_format": "JSON",
 		"output_schema": OUTPUT_SCHEMA,
 		"input_schema": input_schema(export),
-		# Reachable from Ask Alaiy, both as `/amazon_sp_api` and — the point of all
+		# Reachable from Ask Alaiy, both as `/amazon-sp-api` and — the point of all
 		# this — as something `chat/agents.py` can hand a job to in prose.
 		#
 		# `chat_skill` is a claim that an agent's tools enforce their own
@@ -212,8 +212,12 @@ def build(export):
 		# gates on the doctype it reads before it reads it. It is also what takes
 		# these tools OFF the flat chat surface (`chat/tools.py` offers only rows
 		# whose agent has `chat_skill = 0`), which is the other half of the move.
+		#
+		# `agent_id` is a connector's own identifier and may hold underscores
+		# (`amazon_sp_api`); `skill_slug` feeds `/<slug>` and OS Agent Registry
+		# only accepts lowercase letters, digits and single hyphens.
 		"chat_skill": 1,
-		"skill_slug": agent_id,
+		"skill_slug": agent_id.replace("_", "-"),
 		"skill_label": label,
 		# A connector agent exists because someone installed and configured that
 		# connector, so it is on from the start — unlike the agents this app ships,

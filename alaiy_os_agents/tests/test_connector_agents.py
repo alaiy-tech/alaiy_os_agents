@@ -120,7 +120,7 @@ class TestBuild(unittest.TestCase):
 		# to `/` and to `run_agent`, and `chat/tools.py` lends out the tools of
 		# agents with `chat_skill = 0` only.
 		self.assertEqual(self.meta["chat_skill"], 1)
-		self.assertEqual(self.meta["skill_slug"], EXPORT["agent_id"])
+		self.assertEqual(self.meta["skill_slug"], "amazon-sp-api")
 
 	def test_starts_enabled(self):
 		# Unlike the agents this app ships. A connector agent exists because someone
