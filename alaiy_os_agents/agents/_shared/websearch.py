@@ -114,9 +114,38 @@ def research_record():
 	return record
 
 
-def search_competitor_listings(query):
+#: A run that asks for several unrelated specs (a catalog-spec query and a
+#: wrist-fit query, say) pays one LLM turn per query if it calls this tool once
+#: per question -- and turns, not the search itself, are most of a run's wall
+#: clock. Small on purpose: this is for the handful of genuinely different
+#: questions one run legitimately has, not a batch job.
+MAX_QUERIES = 5
+
+
+def _one_search(query):
+	"""One grounded search -> {"query", "answer", "citations"}.
+
+	Deliberately run on the calling thread rather than farmed out to a pool:
+	both `ai_client` implementations read site config and run/billing context
+	(`frappe.conf`, `frappe.local`) on every call rather than caching it at
+	construction the way the thread-safe image methods do, so a bare worker
+	thread here would raise or silently lose cost attribution. Sequential is
+	still the win: each call is ~3-5s, but the LLM turn surrounding a batch of
+	them is one turn instead of one per query, and that outer round trip -- not
+	this loop -- is most of a run's wall clock.
 	"""
-	Web-search for `query` and return a grounded answer plus its sources.
+	result = llm.web_search(query)
+	return {
+		"query": query,
+		"answer": result.get("answer") or "",
+		"citations": result.get("citations") or [],
+	}
+
+
+def search_competitor_listings(query=None, queries=None):
+	"""
+	Web-search for one or more queries and return each one's grounded answer
+	plus its sources.
 
 	Mirrors `chat/websearch.py`'s confirmation-free variant: an agent doesn't
 	need to ask permission the way Ask Alaiy does, since it isn't a
@@ -124,10 +153,31 @@ def search_competitor_listings(query):
 	reach for this. Gated on `llm.web_search_support()` so a site whose AI
 	client can't search (BYOK with no `ai_base_url`) declines cleanly instead
 	of failing every call.
+
+	Accepts either the single `query` a caller has always passed, or a
+	`queries` list — several different questions asked and answered in one
+	tool call (and one LLM turn) instead of one call per question. `query`
+	alone still returns the bare `{query, answer, citations}` shape every
+	existing caller (this agent's own prompt, the pricing agent) already
+	expects; `queries` returns `{results: [...]}`, one entry per query, in the
+	order given.
 	"""
-	query = str(query or "").strip()
-	if not query:
-		frappe.throw("search_competitor_listings needs a `query` — what should I look up?")
+	if queries is not None and query is not None:
+		frappe.throw("search_competitor_listings takes `query` or `queries`, not both.")
+
+	batch = queries if queries is not None else ([query] if query is not None else [])
+	batch = [str(q or "").strip() for q in batch]
+	batch = [q for q in batch if q]
+	if not batch:
+		frappe.throw(
+			"search_competitor_listings needs a `query` (or `queries`) — what should "
+			"I look up?"
+		)
+	if len(batch) > MAX_QUERIES:
+		frappe.throw(
+			f"search_competitor_listings takes at most {MAX_QUERIES} queries in one "
+			f"call; {len(batch)} given. Split them across calls."
+		)
 
 	if not llm.web_search_support():
 		frappe.throw(
@@ -136,11 +186,15 @@ def search_competitor_listings(query):
 			"needs_review instead."
 		)
 
-	result = llm.web_search(query)
-	answer = result.get("answer") or ""
-	citations = result.get("citations") or []
-	research_record()["searches"].append({"query": query, "citations": citations})
-	return {"query": query, "answer": answer, "citations": citations}
+	results = [_one_search(q) for q in batch]
+
+	record = research_record()
+	for r in results:
+		record["searches"].append({"query": r["query"], "citations": r["citations"]})
+
+	if queries is None:
+		return results[0]
+	return {"results": results}
 
 
 def view_page(url):
