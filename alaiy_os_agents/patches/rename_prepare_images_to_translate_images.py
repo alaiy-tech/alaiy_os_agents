@@ -15,6 +15,8 @@ from frappe.model.utils.rename_field import rename_field
 
 
 def execute():
-	if not frappe.db.table_has_column("Listing Bulk Enrich", "prepare_images"):
+	if not frappe.db.table_exists("Listing Bulk Enrich"):
+		return
+	if not frappe.db.has_column("Listing Bulk Enrich", "prepare_images"):
 		return
 	rename_field("Listing Bulk Enrich", "prepare_images", "translate_images")
