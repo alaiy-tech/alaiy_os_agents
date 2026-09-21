@@ -25,7 +25,7 @@ Each entry is a dotted path to a no-argument callable returning one adapter:
         "save_listing":         "dotted.path",   # required — fn(product, listing)
         "validate":             "dotted.path",   # optional — fn(listing) -> [defect, ...]
         "get_reference_values": "dotted.path",   # optional — fn()
-        "prepare_images":       "dotted.path",   # optional — fn(product, enabled, image_urls)
+        "prepare_images":       "dotted.path",   # optional — fn(product, translate, white_bg, generate, image_urls)
         "health":               "dotted.path",   # optional — fn(product); see below
       },
     }

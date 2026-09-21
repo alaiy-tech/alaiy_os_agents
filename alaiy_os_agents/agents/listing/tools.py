@@ -15,7 +15,7 @@ reads tidier and is wrong here: `run_now` executes inside a chat worker that is
 already handling one session, `_dispatch_tools` has no run-scoped teardown, and a
 value left behind by a failed turn would silently steer the next one. Passing it
 costs the model a copied string — the same thing the prompt already asks of it for
-`prepare_images`'s toggle — and makes every call independently correct.
+`prepare_images`'s toggles — and makes every call independently correct.
 
 `channel` stays optional on all of them because on most benches an identifier
 exists on exactly one channel, and asking a seller which marketplace their own SKU
@@ -194,18 +194,31 @@ def _image_block(image_url):
 # ── the image step ────────────────────────────────────────────────────────────
 
 
-def prepare_images(product=None, channel=None, prepare_images=False, image_urls=None):
-	"""Run this channel's image step, if it has one and it was switched on.
+def prepare_images(
+	product=None,
+	channel=None,
+	translate_images=False,
+	white_bg_images=False,
+	generate_images=False,
+	image_urls=None,
+):
+	"""Run this channel's image step, on whichever of its three toggles are on.
 
-	Whether anything happens is the channel's decision and not the model's — the
-	same rule both channel packs already state in their own tool descriptions. The
-	toggle is relayed verbatim from the run input, because image work costs money
-	per photo and nothing but an explicit opt-in should start it.
+	Whether anything happens, and which of the three a channel actually does
+	anything with, is the channel's decision and not the model's — the same
+	rule both channel packs already state in their own tool descriptions. All
+	three toggles are relayed verbatim from the run input, because image work
+	costs money per photo and nothing but an explicit opt-in should start it. A
+	channel that does not implement one of them simply ignores it — passing all
+	three to every channel, always, is what keeps this tool from having to know
+	which channels support what.
 
-	The parameter is named for the input option it carries (`prepare_images`, the
-	fieldname the desk surfaces render) rather than something tidier like
-	`enabled`. That is what makes "copy it verbatim from the input" an instruction
-	the model can follow literally instead of a mapping it has to infer.
+	The parameters are named for the input options they carry
+	(`translate_images` / `white_bg_images` / `generate_images`, the fieldnames
+	the desk surfaces render) rather than something tidier like `translate` /
+	`white_bg` / `generate`. That is what makes "copy them verbatim from the
+	input" an instruction the model can follow literally instead of a mapping
+	it has to infer.
 	"""
 	adapter = channels.resolve(product, channel) if (product or channel) else None
 	if adapter is None:
@@ -223,7 +236,13 @@ def prepare_images(product=None, channel=None, prepare_images=False, image_urls=
 				"— this is expected, not a failure."
 			),
 		}
-	return fn(product=product, enabled=bool(prepare_images), image_urls=image_urls or None)
+	return fn(
+		product=product,
+		translate=bool(translate_images),
+		white_bg=bool(white_bg_images),
+		generate=bool(generate_images),
+		image_urls=image_urls or None,
+	)
 
 
 # ── putting a product on a channel ────────────────────────────────────────────

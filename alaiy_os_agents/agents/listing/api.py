@@ -65,8 +65,8 @@ def bulk_enrich(
 	caller asking to enrich should not create listing records as a side effect.
 
 	Extra keyword arguments are the agent's per-request toggles — whatever
-	`build_agent_meta` reports in `input_options`, e.g. `prepare_images` — so this
-	signature does not name a tool either.
+	`build_agent_meta` reports in `input_options`, e.g. `translate_images` or
+	`white_bg_images` — so this signature does not name a tool either.
 
 	The work happens on workers: open the returned batch to follow it.
 	"""
