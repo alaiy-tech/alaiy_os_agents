@@ -44,7 +44,9 @@ PREFETCHABLE = {
 }
 
 
-def build_context(product, channel=None, prepare_images=False):
+def build_context(
+	product, channel=None, translate_images=False, white_bg_images=False, generate_images=False
+):
 	"""The four fixed lookups for one product, or None if the product does not
 	resolve to a channel right now.
 
@@ -65,7 +67,11 @@ def build_context(product, channel=None, prepare_images=False):
 	resolved = adapter["channel"]
 	context = {tool_id: fn(product, resolved) for tool_id, fn in PREFETCHABLE.items()}
 	context["prepare_images"] = tools.prepare_images(
-		product=product, channel=resolved, prepare_images=prepare_images
+		product=product,
+		channel=resolved,
+		translate_images=translate_images,
+		white_bg_images=white_bg_images,
+		generate_images=generate_images,
 	)
 	return context
 
@@ -85,7 +91,11 @@ def augment_payload(payload):
 
 	try:
 		context = build_context(
-			product, payload.get("channel"), bool(payload.get("prepare_images"))
+			product,
+			payload.get("channel"),
+			bool(payload.get("translate_images")),
+			bool(payload.get("white_bg_images")),
+			bool(payload.get("generate_images")),
 		)
 	except Exception:
 		frappe.log_error(title=f"Listing context prefetch failed for {product}")

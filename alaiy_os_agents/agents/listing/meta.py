@@ -316,31 +316,58 @@ TOOL_CATALOG = {
 			"does is the channel's business, not yours — you do NOT describe the "
 			"imagery you want, choose which photo leads, or reorder the result. "
 			"Call it ONCE for the whole product, passing `product` and "
-			"`prepare_images` copied verbatim from the input toggle (default "
-			"false). Whether "
-			"anything happens is decided by the tool: it runs ONLY when the product "
-			"has photos AND enabled is true. Returns {images: [...]}; copy that "
-			"list into the final `images` array VERBATIM and in the same order, "
-			"including every field on each entry. EXPECT url TO BE null — the "
-			"photos are processed in the background after this run finishes. That "
-			"is success, not failure: do NOT retry, do NOT call it again, do NOT "
-			"put the images in needs_review, and do NOT describe them as missing "
-			"anywhere in your output. Some entries may come back with a real url "
-			"because an earlier run already produced them; a mix is normal. An "
-			"empty list with a note (no photos, toggle off, or no image step on "
-			"this channel) is also expected — set images to [] and record the note."
+			"`translate_images` / `white_bg_images` / `generate_images` copied "
+			"verbatim from the input toggles (all default false) — they are "
+			"independent, and a channel is free to act on any subset of them (e.g. "
+			"white background may only ever apply to a main image, or a channel may "
+			"not implement one of them at all). Whether anything happens is decided "
+			"by the tool: it runs ONLY when the product has photos AND at least one "
+			"toggle the channel supports is true. Returns {images: [...]}; copy "
+			"that list into the final `images` array VERBATIM and in the same "
+			"order, including every field on each entry. EXPECT url TO BE null — "
+			"the photos are processed in the background after this run finishes. "
+			"That is success, not failure: do NOT retry, do NOT call it again, do "
+			"NOT put the images in needs_review, and do NOT describe them as "
+			"missing anywhere in your output. Some entries may come back with a "
+			"real url because an earlier run already produced them; a mix is "
+			"normal. An empty list with a note (no photos, every toggle off or "
+			"unsupported, or no image step on this channel) is also expected — set "
+			"images to [] and record the note."
 		),
 		"handler": f"{_HANDLERS}.prepare_images",
-		"input_option": {
-			"fieldname": "prepare_images",
-			"label": "Prepare images",
-			"description": (
-				"Run the channel's image step on this product's photos. Costs money "
-				"per image, and only works for photos reachable from the public "
-				"internet. Turn off for a faster, text-only enrichment."
-			),
-			"default": 0,
-		},
+		"input_option": [
+			{
+				"fieldname": "translate_images",
+				"label": "Translate images",
+				"description": (
+					"Translate the Chinese text printed on this product's supplier "
+					"photos into English. Costs money per image, and only works for "
+					"photos reachable from the public internet."
+				),
+				"default": 0,
+			},
+			{
+				"fieldname": "white_bg_images",
+				"label": "White background (main image)",
+				"description": (
+					"Put the product's main image on a plain white background. "
+					"Costs money per image, and only works for photos reachable "
+					"from the public internet. A channel with no such requirement "
+					"ignores it."
+				),
+				"default": 0,
+			},
+			{
+				"fieldname": "generate_images",
+				"label": "Regenerate images",
+				"description": (
+					"AI-retouch the product's own photos. Costs money per image, and "
+					"only works for photos reachable from the public internet. A "
+					"channel with no such capability ignores it."
+				),
+				"default": 0,
+			},
+		],
 		"parameters_schema": {
 			"type": "object",
 			"properties": {
@@ -349,7 +376,15 @@ TOOL_CATALOG = {
 					"description": "The product identifier whose photos to prepare.",
 				},
 				"channel": _CHANNEL_ARG,
-				"prepare_images": {
+				"translate_images": {
+					"type": "boolean",
+					"description": "The per-request opt-in toggle of the same name, copied verbatim from the input (default false).",
+				},
+				"white_bg_images": {
+					"type": "boolean",
+					"description": "The per-request opt-in toggle of the same name, copied verbatim from the input (default false).",
+				},
+				"generate_images": {
 					"type": "boolean",
 					"description": "The per-request opt-in toggle of the same name, copied verbatim from the input (default false).",
 				},
@@ -541,7 +576,14 @@ def build_agent_meta():
 		# directly-callable surface.
 		"writes": ("save_listing", "register_product"),
 		# A consequence of the tools, not a separate declaration.
-		"input_options": [t["input_option"] for t in tools if t.get("input_option")],
+		"input_options": [
+			opt
+			for t in tools
+			if t.get("input_option")
+			for opt in (
+				t["input_option"] if isinstance(t["input_option"], list) else [t["input_option"]]
+			)
+		],
 		# Not a registry field; useful to whoever is debugging why a prompt looks the
 		# way it does.
 		"override_app": app,

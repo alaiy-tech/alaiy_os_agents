@@ -12,7 +12,9 @@
   "total_items",
   "batch_size",
   "col_break_request",
-  "prepare_images",
+  "translate_images",
+  "white_bg_images",
+  "generate_images",
   "skip_enriched",
   "notes_section",
   "notes",
@@ -71,10 +73,24 @@
   },
   {
    "default": "0",
-   "description": "Runs the channel's image step for every product. Costs money per image, and only works for photos reachable from the public internet.",
-   "fieldname": "prepare_images",
+   "description": "Translates the Chinese text printed on the product's supplier photos into English. Costs money per image, and only works for photos reachable from the public internet.",
+   "fieldname": "translate_images",
    "fieldtype": "Check",
-   "label": "Prepare images"
+   "label": "Translate images"
+  },
+  {
+   "default": "0",
+   "description": "Puts the product's main image on a plain white background. Costs money per image, and only works for photos reachable from the public internet. A channel with no such requirement ignores it.",
+   "fieldname": "white_bg_images",
+   "fieldtype": "Check",
+   "label": "White background (main image)"
+  },
+  {
+   "default": "0",
+   "description": "AI-retouches the product's own photos. Costs money per image, and only works for photos reachable from the public internet. A channel with no such capability ignores it.",
+   "fieldname": "generate_images",
+   "fieldtype": "Check",
+   "label": "Regenerate images"
   },
   {
    "default": "0",
