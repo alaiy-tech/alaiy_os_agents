@@ -9,7 +9,7 @@
   },
   "competitor_prices": {
    "type": "array",
-   "description": "Every competitor price you actually verified by opening its page with view_competitor_page. Never include one you could not point to an opened URL for.",
+   "description": "Every distinct price search_competitor_listings' answer clearly states for this product, each matched to the citation it credits that price to. Never include a price the answer did not actually state.",
    "items": {
     "type": "object",
     "additionalProperties": false,
@@ -20,7 +20,7 @@
      },
      "url": {
       "type": "string",
-      "description": "The exact page URL you opened with view_competitor_page and read the price from."
+      "description": "The citation URL search_competitor_listings credited this price to."
      },
      "price": {
       "type": "number",
