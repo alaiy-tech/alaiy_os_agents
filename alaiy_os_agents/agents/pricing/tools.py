@@ -44,6 +44,23 @@ def _resolve_url(url):
 		return url
 
 
+def _resolve_urls(urls):
+	"""Resolve every citation URL concurrently instead of one HEAD at a time.
+
+	`save_comparison` is the run's final, blocking action — an admin's
+	"Compare Pricing" click sits on the wall clock this adds. Run
+	sequentially, N competitor prices cost up to N * RESOLVE_URL_TIMEOUT;
+	a thread pool bounds it to one timeout's worth regardless of N.
+	"""
+	if not urls:
+		return {}
+	from concurrent.futures import ThreadPoolExecutor
+
+	with ThreadPoolExecutor(max_workers=min(len(urls), 8)) as pool:
+		resolved = list(pool.map(_resolve_url, urls))
+	return dict(zip(urls, resolved))
+
+
 def get_product(product):
 	"""This item's own selling price, brand and name — the seed for a search query."""
 	if not frappe.db.exists("Item", product):
@@ -104,13 +121,15 @@ def save_comparison(product, competitor_prices=None):
 	doc.currency = prices["currency"]
 	doc.run = run
 	doc.compared_at = now_datetime()
+	resolved_urls = _resolve_urls([row["url"] for row in usable])
+
 	doc.set("competitor_prices", [])
 	for row in usable:
 		doc.append(
 			"competitor_prices",
 			{
 				"source_name": row.get("source_name") or row["url"],
-				"url": _resolve_url(row["url"]),
+				"url": resolved_urls[row["url"]],
 				"price": flt(row["price"]),
 				"currency": row.get("currency"),
 				"captured_at": now_datetime(),
