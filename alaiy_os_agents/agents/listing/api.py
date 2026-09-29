@@ -30,7 +30,7 @@ import json
 import frappe
 from frappe.utils import cint
 
-from alaiy_os_agents.agents.listing import channels
+from alaiy_os_agents.agents.listing import channels, in_flight
 from alaiy_os_agents.agents.listing.bulk import BATCH_DOCTYPE, DEFAULT_BATCH_SIZE
 
 
@@ -93,6 +93,13 @@ def bulk_enrich(
 		# same product and race on the single enrichment it writes.
 		if product not in resolved:
 			resolved.append(product)
+
+	# One enrichment per product at a time — see in_flight's module docstring for
+	# the gallery this cost. Reported like any other product that cannot run, so
+	# the rest of the batch still goes.
+	for product in in_flight.products_in_flight(resolved):
+		resolved.remove(product)
+		errors[product] = in_flight.BUSY_MESSAGE
 
 	if not resolved:
 		# An empty batch would sit in Draft forever, saying nothing about why.
