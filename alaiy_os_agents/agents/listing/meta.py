@@ -575,6 +575,13 @@ def build_agent_meta():
 		# marks them `effect: write`, which keeps them off Ask Alaiy's
 		# directly-callable surface.
 		"writes": ("save_listing", "register_product"),
+		# `save_listing` is the only thing that puts the work anywhere, and a model
+		# that ends on the finished listing as its reply without calling it leaves a
+		# Success with nothing saved -- about one sourced run in eleven on commerce.
+		# The engine reminds it once (see alaiy_os executor._remind_required) and never
+		# fails the run for it, since a URL-only enrichment rightly has nothing to save.
+		# A string, not a tuple: it lands on a Small Text field as-is.
+		"required_tools": "save_listing",
 		# A consequence of the tools, not a separate declaration.
 		"input_options": [
 			opt
