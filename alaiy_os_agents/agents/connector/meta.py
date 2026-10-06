@@ -90,7 +90,11 @@ HOOK = "connector_agents"
 #: is the right one, and it is chosen once here rather than per connector — a
 #: fan-out asks several of these at a time, so this number is multiplied by however
 #: many channels a bench has before anyone notices it.
-MODEL = "claude-haiku-4-5-20251001"
+#:
+#: Named the way the AI gateway names it: benches send its bare alias, and the
+#: gateway refuses any other spelling with a 400 before the agent's first turn. The
+#: same model Ask Alaiy's own turns and the listing agent run on.
+MODEL = "gemini-3.1-flash-lite"
 
 #: A worst-case answer is: narrow the question, read a listing, read its sales,
 #: reply. Ten leaves room for one wrong turn without letting a model page through
