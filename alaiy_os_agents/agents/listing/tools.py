@@ -173,7 +173,27 @@ def view_image(image_url):
 
 
 def _image_block(image_url):
-	"""A base64 vision block for an external image URL."""
+	"""A base64 vision block for an image URL.
+
+	An image the site holds -- an object in its S3 bucket, or a site-relative File like
+	`/files/x.jpg` -- is read with the site's own access: a private object refuses a
+	plain GET, and a relative path is not one a request can make. Anything else is
+	downloaded.
+	"""
+	from alaiy_os import image_store
+
+	stored = image_store.read(image_url)
+	if stored:
+		content, mime = stored
+		return {
+			"type": "image",
+			"source": {
+				"type": "base64",
+				"media_type": mime or MEDIA_TYPES.get(os.path.splitext(image_url or "")[1].lower()) or "image/jpeg",
+				"data": base64.b64encode(content).decode("ascii"),
+			},
+		}
+
 	import requests
 
 	resp = requests.get(image_url, timeout=30, headers=FETCH_HEADERS)
