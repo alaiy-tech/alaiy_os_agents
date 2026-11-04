@@ -43,8 +43,9 @@ _APP_DIR = Path(__file__).resolve().parent
 # Where a customer app puts its override, relative to its own package directory.
 OVERRIDE_PATH = ("agents", "listing.md")
 
-# Frontmatter keys we honour. Anything else in there is a typo, so say so.
-OVERRIDE_KEYS = ("model", "description")
+# Frontmatter keys we honour. Anything else in there is a typo, so say so. Every
+# one is optional: a key left out keeps this agent's own default.
+OVERRIDE_KEYS = ("model", "description", "max_turns")
 
 
 def read_text(relpath):
@@ -498,8 +499,8 @@ def parse_override(text):
 	Split an override file into (frontmatter dict, prompt body).
 
 	Frontmatter is optional, `key: value` per line between two `---` lines. Kept
-	deliberately dumb — it exists only for `model` and `description`, everything else
-	belongs in the prompt itself.
+	deliberately dumb — it exists only for `model`, `description` and `max_turns`,
+	everything else belongs in the prompt itself.
 	"""
 	meta, body = {}, text
 
@@ -523,6 +524,33 @@ def parse_override(text):
 				meta[key] = value.strip()
 
 	return meta, body.strip()
+
+
+def override_max_turns(meta):
+	"""
+	The turn budget an override asks for, or DEFAULT_MAX_TURNS when it names none.
+
+	A customer whose prompt asks for more research than the default budget covers
+	needs a higher ceiling, and the registry row is rewritten from this manifest
+	on every migrate, so a value edited on the row itself does not survive one.
+
+	A value that is not a positive whole number fails the migrate rather than
+	falling back silently: an override that quietly does nothing is worse than one
+	that stops and says why.
+	"""
+	raw = meta.get("max_turns")
+	if raw in (None, ""):
+		return DEFAULT_MAX_TURNS
+	try:
+		turns = int(raw)
+	except ValueError:
+		turns = 0
+	if turns < 1:
+		frappe.throw(
+			f"max_turns in an agents/listing.md frontmatter must be a whole number "
+			f"of 1 or more, not '{raw}'."
+		)
+	return turns
 
 
 def build_agent_meta():
@@ -558,7 +586,7 @@ def build_agent_meta():
 		# No settings DocType: the agent stores no credentials.
 		"settings_doctype": None,
 		"model": meta.get("model") or DEFAULT_MODEL,
-		"max_turns": DEFAULT_MAX_TURNS,
+		"max_turns": override_max_turns(meta),
 		"system_prompt": prompt,
 		"output_format": "JSON",
 		"output_schema": BASE_SCHEMA,
