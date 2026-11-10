@@ -42,6 +42,17 @@ def _flag(value):
 
 
 @frappe.whitelist()
+def get_registrable_channels():
+	"""`[{value, label}]` for the channels an Item can be listed on, for the Item list's dialog.
+
+	A channel whose adapter says `"default": True` comes first, and the dialog selects
+	the first one.
+	"""
+	adapters = sorted(channels.registrable().items(), key=lambda pair: not pair[1].get("default"))
+	return [{"value": channel, "label": adapter.get("label") or channel} for channel, adapter in adapters]
+
+
+@frappe.whitelist()
 def bulk_enrich(
 	products,
 	channel=None,

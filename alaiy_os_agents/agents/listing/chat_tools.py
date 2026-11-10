@@ -43,6 +43,7 @@ import frappe
 
 from alaiy_os_agents.agents.listing import api
 from alaiy_os_agents.agents.listing.meta import AGENT_ID
+from alaiy_os_agents.registry import agent_enabled
 
 TOOL = "listing_bulk_enrich_from_csv"
 
@@ -145,7 +146,7 @@ def source():
 	The second is the user's own permission to start runs. `api.bulk_enrich` checks
 	it again — this is the polite half, that one is the load-bearing half.
 	"""
-	if not frappe.db.get_value("OS Agent Registry", AGENT_ID, "is_enabled"):
+	if not agent_enabled(AGENT_ID):
 		return None
 	if not frappe.has_permission("OS Agent Run", "create"):
 		return None

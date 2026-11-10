@@ -50,6 +50,9 @@ required_apps = ["alaiy_os"]
 after_install = ["alaiy_os_agents.registry.sync"]
 after_migrate = ["alaiy_os_agents.registry.sync"]
 
+# "Create Listings" on the Item list: the listing agent, for the Items picked.
+doctype_list_js = {"Item": "public/js/item_list.js"}
+
 # ---------------------------------------------------------------------------
 # Ask Alaiy
 # ---------------------------------------------------------------------------

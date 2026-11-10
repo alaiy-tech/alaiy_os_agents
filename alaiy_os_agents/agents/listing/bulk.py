@@ -32,6 +32,7 @@ import frappe
 from frappe.utils import now_datetime
 
 from alaiy_os_agents.agents.listing import channels, context
+from alaiy_os_agents.registry import agent_enabled
 
 BATCH_DOCTYPE = "Listing Bulk Enrich"
 ITEM_DOCTYPE = "Listing Bulk Enrich Item"
@@ -140,7 +141,7 @@ def _create_run(agent, payload):
 	Mirrors alaiy_os.engine.executor.execute_agent, minus the frappe.enqueue: the
 	whole point of a chunk is that its products run in *this* job.
 	"""
-	enabled = frappe.db.get_value("OS Agent Registry", agent, "is_enabled")
+	enabled = agent_enabled(agent)
 	if enabled is None:
 		frappe.throw(f"Agent {agent} does not exist.")
 	if not enabled:

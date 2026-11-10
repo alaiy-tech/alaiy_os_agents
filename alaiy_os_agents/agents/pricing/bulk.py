@@ -14,6 +14,8 @@ import json
 import frappe
 from frappe.utils import now_datetime
 
+from alaiy_os_agents.registry import agent_enabled
+
 BATCH_DOCTYPE = "Price Comparison Bulk Run"
 ITEM_DOCTYPE = "Price Comparison Bulk Run Item"
 
@@ -97,7 +99,7 @@ def _run_row(batch, row, agent, options):
 
 def _create_run(agent, payload):
 	"""An OS Agent Run for one product, queued but not enqueued — this worker runs it."""
-	enabled = frappe.db.get_value("OS Agent Registry", agent, "is_enabled")
+	enabled = agent_enabled(agent)
 	if enabled is None:
 		frappe.throw(f"Agent {agent} does not exist.")
 	if not enabled:

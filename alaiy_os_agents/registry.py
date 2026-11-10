@@ -211,3 +211,17 @@ def unregister():
 		if frappe.db.exists("OS Agent Registry", agent_id):
 			frappe.delete_doc("OS Agent Registry", agent_id, force=True, ignore_permissions=True)
 	frappe.db.commit()
+
+
+def agent_enabled(agent):
+	"""Whether `agent` may run: True, False, or None when it is not registered.
+
+	Newer alaiy_os has no `is_enabled` on OS Agent Registry; there an agent that
+	exists runs, the same rule as `alaiy_os.engine.executor._assert_runnable`.
+	Reading the column without checking first fails every run with "Unknown column".
+	"""
+	if not frappe.db.exists("OS Agent Registry", agent):
+		return None
+	if not frappe.get_meta("OS Agent Registry").has_field("is_enabled"):
+		return True
+	return bool(frappe.db.get_value("OS Agent Registry", agent, "is_enabled"))
