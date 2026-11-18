@@ -65,6 +65,51 @@ class TestProductsInFlight(unittest.TestCase):
 			self.assertEqual(in_flight.products_in_flight([]), set())
 
 
+class TestRetriedBatchCounts(unittest.TestCase):
+	"""A batch created long ago and retried today is live. The guard used to time it
+	from creation, so a run started beside the retry raced it on one draft."""
+
+	def _in_flight(self, batch):
+		def matches(record, filters):
+			for field, (op, value) in filters.items():
+				if op == "in" and record[field] not in value:
+					return False
+				if op == ">" and not record[field] > value:
+					return False
+			return True
+
+		def get_all(doctype, filters=None, fields=None, pluck=None):
+			if doctype == in_flight.ITEM_DOCTYPE:
+				return [frappe._dict(product="A", parent="B1")]
+			if doctype == in_flight.BATCH_DOCTYPE:
+				return [batch["name"]] if matches(batch, filters) else []
+			if doctype == in_flight.RUN_DOCTYPE:
+				return []
+			raise AssertionError(f"unexpected read of {doctype}")
+
+		with patch.object(in_flight, "now_datetime", return_value=datetime.datetime(2026, 9, 29, 12)):
+			with patch(GET_ALL, side_effect=get_all):
+				return in_flight.products_in_flight(["A"])
+
+	def test_a_week_old_batch_retried_an_hour_ago_counts(self):
+		batch = {
+			"name": "B1",
+			"status": "Queued",
+			"creation": datetime.datetime(2026, 9, 22, 12),
+			"modified": datetime.datetime(2026, 9, 29, 11),
+		}
+		self.assertEqual(self._in_flight(batch), {"A"})
+
+	def test_a_batch_last_started_a_day_ago_is_stale(self):
+		batch = {
+			"name": "B1",
+			"status": "Running",
+			"creation": datetime.datetime(2026, 9, 28, 12),
+			"modified": datetime.datetime(2026, 9, 28, 12),
+		}
+		self.assertEqual(self._in_flight(batch), set())
+
+
 def _raise(msg, *args, **kwargs):
 	# frappe.throw without a site to msgprint to.
 	raise frappe.ValidationError(msg)
