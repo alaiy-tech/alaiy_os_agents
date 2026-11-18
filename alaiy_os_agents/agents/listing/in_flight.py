@@ -68,7 +68,10 @@ def _in_live_batches(wanted, since):
 			filters={
 				"name": ("in", list({row.parent for row in rows})),
 				"status": ("in", BATCH_IN_FLIGHT),
-				"creation": (">", since),
+				# From the batch's last start, not its creation: start() and
+				# retry_failed() re-queue an existing batch, and only they (and
+				# cancel_batch) move `modified` - the workers write without it.
+				"modified": (">", since),
 			},
 			pluck="name",
 		)
